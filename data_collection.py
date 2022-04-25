@@ -81,7 +81,7 @@ if __name__ == '__main__':
     #         results.pose_world_landmarks, mp_pose.POSE_CONNECTIONS)
 
     # For webcam input:
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     with mp_pose.Pose(
             min_detection_confidence=0.05,
             min_tracking_confidence=0.05) as pose:
