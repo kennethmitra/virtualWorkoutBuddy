@@ -120,8 +120,8 @@ def df_to_angles_df(data, compute_ground_angle=False):
 def compute_acc(config):
     train, test = read_dataset(class_names)
 
-    train_angles = df_to_angles_df(train)
-    test_angles = df_to_angles_df(test)
+    train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
+    test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
     X_train_angles = train_angles.drop(['label'], axis=1)
     y_train_angles = train_angles['label']
@@ -148,16 +148,16 @@ def compute_acc(config):
     y_test = y_test_angles
 
     clf_names = [
-        "Nearest Neighbors",
-        "Linear SVM",
-        "RBF SVM",
+        # "Nearest Neighbors",
+        # "Linear SVM",
+        # "RBF SVM",
         # "Gaussian Process",
-        "Decision Tree",
-        "Random Forest",
-        "Neural Net",
-        "AdaBoost",
-        "Naive Bayes",
-        "QDA",
+        # "Decision Tree",
+        # "Random Forest",
+        # "Neural Net",
+        # "AdaBoost",
+        # "Naive Bayes",
+        # "QDA",
         "XGBoost"
     ]
 
@@ -165,7 +165,7 @@ def compute_acc(config):
     trial = FakeTrial({'booster': 'dart', 'lambda': 8.082457988671528e-06, 'alpha': 3.9239035875153386e-07, 'subsample': 0.25131589916254415, 'colsample_bytree': 0.5467022833532039, 'max_depth': 3, 'min_child_weight': 7, 'eta': 0.15197226233426275, 'gamma': 2.6797080962357936e-08, 'grow_policy': 'lossguide', 'sample_type': 'uniform', 'normalize_type': 'tree', 'rate_drop': 0.0035888275126407594, 'skip_drop': 0.05678533615073127})
     xgb_params = {
         "verbosity": 0,
-        "objective": "multi:softmax",
+        "objective": "multi:softproba",
         "num_class": len(class_names),
         "eval_metric": "auc",
         "booster": trial.suggest_categorical("booster", ["gbtree", "gblinear", "dart"]),
@@ -179,7 +179,6 @@ def compute_acc(config):
         'gpu_id': 0,
         'num_boost_round': 100,
         #'early_stopping_rounds': 25,
-        'seed': 108
     }
     if xgb_params["booster"] == "gbtree" or xgb_params["booster"] == "dart":
         xgb_params["max_depth"] = trial.suggest_int("max_depth", 1, 9)
@@ -198,16 +197,16 @@ def compute_acc(config):
     dt_params = {'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969, 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516, 'max_features': 'sqrt', 'class_weight': None}
 
     classifiers = [
-        KNeighborsClassifier(3),
-        SVC(kernel="linear", C=0.025),
-        SVC(gamma='scale', C=1, class_weight='balanced'),
+        # KNeighborsClassifier(3),
+        # SVC(kernel="linear", C=0.025),
+        # SVC(gamma='scale', C=1, class_weight='balanced'),
         # GaussianProcessClassifier(1.0 * RBF(1.0)),
-        DecisionTreeClassifier(**dt_params),
-        RandomForestClassifier(max_depth=12, n_estimators=400, max_features=12),
-        MLPClassifier(alpha=1e-2, hidden_layer_sizes=(150,), max_iter=4000),
-        AdaBoostClassifier(),
-        GaussianNB(),
-        QuadraticDiscriminantAnalysis(),
+        # DecisionTreeClassifier(**dt_params),
+        # RandomForestClassifier(max_depth=12, n_estimators=400, max_features=12),
+        # MLPClassifier(alpha=1e-2, hidden_layer_sizes=(150,), max_iter=4000),
+        # AdaBoostClassifier(),
+        # GaussianNB(),
+        # QuadraticDiscriminantAnalysis(),
         XGBClassifier(**xgb_params)
     ]
 
@@ -248,8 +247,8 @@ config = config_list[config_idx]
 
 train, test = read_dataset(class_names)
 
-train_angles = df_to_angles_df(train)
-test_angles = df_to_angles_df(test)
+train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
+test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
 X_train_angles = train_angles.drop(['label'], axis=1)
 y_train_angles = train_angles['label']

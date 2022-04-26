@@ -95,6 +95,10 @@ def df_to_angles_df(data, compute_ground_angle=False):
     angles_df['label'] = data['label']
     return angles_df
 
+_point_columns_grouped = [(f"{i}_x", f"{i}_y", f"{i}_z", f"{i}_vis") for i in range(33)]
+point_columns = []
+for el in _point_columns_grouped:
+    point_columns.extend(el)
 
 if __name__ == '__main__':
 
@@ -121,7 +125,10 @@ if __name__ == '__main__':
             # Classify Pose
             try:
                 processed_data = process_results(results)
-                pred = model.predict([processed_data])
+                df = pd.DataFrame(data=[processed_data], columns=point_columns)
+                pred = model.predict(df)
+                # angles_df = df_to_angles_df(df)
+                # pred = model.predict(angles_df)
                 print(f"{class_names[pred[0]]}")
             except Exception as e:
                 print("ERROR", e)

@@ -167,8 +167,8 @@ if __name__ == "__main__":
 
     train, test = read_dataset(class_names)
 
-    train_angles = df_to_angles_df(train)
-    test_angles = df_to_angles_df(test)
+    train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
+    test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
     X_train_angles = train_angles.drop(['label'], axis=1)
     y_train_angles = train_angles['label']
