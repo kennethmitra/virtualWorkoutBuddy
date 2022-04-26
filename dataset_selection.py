@@ -19,7 +19,6 @@ import xgboost as xgb
 from xgboost import XGBClassifier
 from tqdm import tqdm
 import beepy
-from utils import FakeTrial
 
 # Create dataset
 class_names = ["pushup_up", "pushup_down", "situp_up", "situp_down", "squat_up", "squat_down"]
@@ -162,7 +161,11 @@ def compute_acc(config):
     ]
 
     # XGBoost: Set parameters found by optuna
-    trial = FakeTrial({'booster': 'dart', 'lambda': 8.082457988671528e-06, 'alpha': 3.9239035875153386e-07, 'subsample': 0.25131589916254415, 'colsample_bytree': 0.5467022833532039, 'max_depth': 3, 'min_child_weight': 7, 'eta': 0.15197226233426275, 'gamma': 2.6797080962357936e-08, 'grow_policy': 'lossguide', 'sample_type': 'uniform', 'normalize_type': 'tree', 'rate_drop': 0.0035888275126407594, 'skip_drop': 0.05678533615073127})
+    trial = FakeTrial({'booster': 'dart', 'lambda': 8.082457988671528e-06, 'alpha': 3.9239035875153386e-07,
+                       'subsample': 0.25131589916254415, 'colsample_bytree': 0.5467022833532039, 'max_depth': 3,
+                       'min_child_weight': 7, 'eta': 0.15197226233426275, 'gamma': 2.6797080962357936e-08,
+                       'grow_policy': 'lossguide', 'sample_type': 'uniform', 'normalize_type': 'tree',
+                       'rate_drop': 0.0035888275126407594, 'skip_drop': 0.05678533615073127})
     xgb_params = {
         "verbosity": 0,
         "objective": "multi:softmax",
@@ -178,7 +181,7 @@ def compute_acc(config):
         "tree_method": 'gpu_hist',
         'gpu_id': 0,
         'num_boost_round': 100,
-        #'early_stopping_rounds': 25,
+        # 'early_stopping_rounds': 25,
         'seed': 108
     }
     if xgb_params["booster"] == "gbtree" or xgb_params["booster"] == "dart":
@@ -195,7 +198,9 @@ def compute_acc(config):
         xgb_params["skip_drop"] = trial.suggest_float("skip_drop", 1e-8, 1.0, log=True)
 
     # Decision Tree: Set parameters found by optuna
-    dt_params = {'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969, 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516, 'max_features': 'sqrt', 'class_weight': None}
+    dt_params = {'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969,
+                 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516,
+                 'max_features': 'sqrt', 'class_weight': None}
 
     classifiers = [
         KNeighborsClassifier(3),
@@ -220,12 +225,10 @@ def compute_acc(config):
         print(sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy())))
 
     scores_df = pd.DataFrame(data=[scores], columns=clf_names)
-    scores_df.to_csv(f"{output_dir}/clf_scores.csv")
-    print(scores_df)
-
-    highest_scoring = np.array(scores).argmax()
-    print(f"Saving {clf_names[highest_scoring]} to disk...")
-    dump(classifiers[highest_scoring], f"{output_dir}/model.pkl")
+    # scores_df.to_csv(f"{output_dir}/direct_clf_scores.csv")
+    # print(scores_df)
+    #
+    # dump(classifiers[clf_names.index("Nearest Neighbors")], f"{output_dir}/model.pkl")
 
     print(f"Max Score: {np.array(scores).max()}")
     print(clf_names[np.array(scores).argmax()])
@@ -235,46 +238,30 @@ def compute_acc(config):
 output_dir = "outputs"
 Path(output_dir).mkdir(exist_ok=True, parents=True)
 
-config_list = [
-        {'A': True, 'P': False, 'C': False},
-       {'A': True, 'P': True, 'C': False},
-       {'A': True, 'P': False, 'C': True},
-       {'A': True, 'P': True, 'C': True},
-       {'A': False, 'P': True, 'C': False},
-       {'A': False, 'P': True, 'C': True},
-]
-config_idx = 3
-config = config_list[config_idx]
+n_trials = 20
+configs = [{'A': True, 'P': False, 'C': False},
+           {'A': True, 'P': True, 'C': False},
+           {'A': True, 'P': False, 'C': True},
+           {'A': True, 'P': True, 'C': True},
+           {'A': False, 'P': True, 'C': False},
+           {'A': False, 'P': True, 'C': True},
+           ]
 
-train, test = read_dataset(class_names)
+name_str = lambda x: "+".join([k for k, v in x.items() if v])
+configs_str = list(map(name_str, configs))
+results = pd.DataFrame(columns=configs_str)
 
-train_angles = df_to_angles_df(train)
-test_angles = df_to_angles_df(test)
+with tqdm(total=len(configs) * n_trials) as pbar:
+    for config_str, config in tqdm(zip(configs_str, configs)):
+        print(f"Running config: {config_str}")
+        for trial_num in tqdm(range(n_trials)):
+            print(f"Trial no: {trial_num}")
+            acc = compute_acc(config)
+            print(f"Accuracy: {acc}")
+            results.loc[trial_num, config_str] = acc
+            pbar.update(1)
 
-X_train_angles = train_angles.drop(['label'], axis=1)
-y_train_angles = train_angles['label']
-X_test_angles = test_angles.drop(['label'], axis=1)
-y_test_angles = test_angles['label']
-
-X_train_points = train.drop(['label'], axis=1)
-y_train_points = train['label']
-X_test_points = test.drop(['label'], axis=1)
-y_test_points = test['label']
-
-train_ds = []
-test_ds = []
-if config['A']:
-    train_ds.append(X_train_angles)
-    test_ds.append(X_test_angles)
-if config['P']:
-    train_ds.append(X_train_points)
-    test_ds.append(X_test_points)
-
-X_train = pd.concat(train_ds, axis=1)
-y_train = y_train_angles
-X_test = pd.concat(test_ds, axis=1)
-y_test = y_test_angles
-
-compute_acc(config)
+print(results)
+results.to_csv(f"{output_dir}/dataset_selection_results2.csv")
 
 beepy.beep("ready")

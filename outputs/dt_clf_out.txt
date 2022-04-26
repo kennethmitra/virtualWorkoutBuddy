@@ -1,0 +1,14 @@
+Best trial:
+  Value: 0.947184006743538
+  Params: 
+    config_idx: 3
+    criterion: gini
+    splitter: best
+    max_depth: 11
+    min_samples_split: 0.0843463691913969
+    min_samples_leaf: 0.017900502267895104
+    min_weight_fraction_leaf: 0.010145940025576516
+    max_features: sqrt
+    class_weight: None
+Params dict: {'config_idx': 3, 'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969, 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516, 'max_features': 'sqrt', 'class_weight': None}
+-----------------------------------------------------------------------------

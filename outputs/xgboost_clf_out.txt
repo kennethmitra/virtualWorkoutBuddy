@@ -1,0 +1,50 @@
+Number of finished trials:  200
+Best trial:
+  Value: 0.9999984884311738
+  Params: 
+    booster: gbtree
+    lambda: 0.09196045734293679
+    alpha: 1.908407846132834e-06
+    subsample: 0.9458586906914085
+    colsample_bytree: 0.4584840802483084
+    max_depth: 7
+    min_child_weight: 2
+    eta: 0.09467277396229287
+    gamma: 0.0007121740345554765
+    grow_policy: depthwise
+Params dict: {'booster': 'gbtree', 'lambda': 0.09196045734293679, 'alpha': 1.908407846132834e-06, 'subsample': 0.9458586906914085, 'colsample_bytree': 0.4584840802483084, 'max_depth': 7, 'min_child_weight': 2, 'eta': 0.09467277396229287, 'gamma': 0.0007121740345554765, 'grow_policy': 'depthwise'}
+  Number of estimators: 49
+-----------------------------------------------------------------------------
+Number of finished trials:  800
+Best trial:
+  Value: 1.0
+  Params: 
+    booster: gblinear
+    lambda: 6.873419622525215e-08
+    alpha: 2.2232659589883442e-06
+    subsample: 0.6035429982386462
+    colsample_bytree: 0.3149533438414732
+Params dict: {'booster': 'gblinear', 'lambda': 6.873419622525215e-08, 'alpha': 2.2232659589883442e-06, 'subsample': 0.6035429982386462, 'colsample_bytree': 0.3149533438414732}
+  Number of estimators: 193
+-----------------------------------------------------------------------------
+Number of finished trials:  108
+Best trial:
+  Value: 0.9284890426758939
+  Params: 
+    booster: dart
+    lambda: 8.082457988671528e-06
+    alpha: 3.9239035875153386e-07
+    subsample: 0.25131589916254415
+    colsample_bytree: 0.5467022833532039
+    max_depth: 3
+    min_child_weight: 7
+    eta: 0.15197226233426275
+    gamma: 2.6797080962357936e-08
+    grow_policy: lossguide
+    sample_type: uniform
+    normalize_type: tree
+    rate_drop: 0.0035888275126407594
+    skip_drop: 0.05678533615073127
+Params dict: {'booster': 'dart', 'lambda': 8.082457988671528e-06, 'alpha': 3.9239035875153386e-07, 'subsample': 0.25131589916254415, 'colsample_bytree': 0.5467022833532039, 'max_depth': 3, 'min_child_weight': 7, 'eta': 0.15197226233426275, 'gamma': 2.6797080962357936e-08, 'grow_policy': 'lossguide', 'sample_type': 'uniform', 'normalize_type': 'tree', 'rate_drop': 0.0035888275126407594, 'skip_drop': 0.05678533615073127}
+  Number of estimators: 100
+-----------------------------------------------------------------------------
