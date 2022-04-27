@@ -1,3 +1,5 @@
+from collections import Counter
+
 import pandas as pd
 import sklearn
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
@@ -24,6 +26,7 @@ import beepy
 from utils import FakeTrial
 
 class_names = ["pushup_up", "pushup_down", "situp_up", "situp_down", "squat_up", "squat_down"]
+
 
 # Create dataset
 def read_dataset(class_names):
@@ -118,11 +121,12 @@ def df_to_angles_df(data, compute_ground_angle=False):
     angles_df['label'] = data['label']
     return angles_df
 
+
 def compute_acc(config):
     train, test = read_dataset(class_names)
 
-    train_angles = df_to_angles_df(train)
-    test_angles = df_to_angles_df(test)
+    train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
+    test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
     X_train_angles = train_angles.drop(['label'], axis=1)
     y_train_angles = train_angles['label']
@@ -233,9 +237,10 @@ def compute_acc(config):
     # dump(classifiers[clf_names.index("Nearest Neighbors")], f"{output_dir}/model.pkl")
 
     print(f"Max Score: {np.array(scores).max()}")
-    print(clf_names[np.array(scores).argmax()])
+    print("Best Classifier", clf_names[np.array(scores).argmax()])
 
-    return np.array(scores).max()
+    return np.array(scores).max(), clf_names[np.array(scores).argmax()]
+
 
 output_dir = "outputs"
 Path(output_dir).mkdir(exist_ok=True, parents=True)
@@ -253,17 +258,23 @@ name_str = lambda x: "+".join([k for k, v in x.items() if v])
 configs_str = list(map(name_str, configs))
 results = pd.DataFrame(columns=configs_str)
 
+best_clf_counter = Counter()
+
 with tqdm(total=len(configs) * n_trials) as pbar:
     for config_str, config in tqdm(zip(configs_str, configs)):
         print(f"Running config: {config_str}")
         for trial_num in tqdm(range(n_trials)):
             print(f"Trial no: {trial_num}")
-            acc = compute_acc(config)
+            acc, best_clf = compute_acc(config)
+            best_clf_counter[best_clf] += 1
             print(f"Accuracy: {acc}")
             results.loc[trial_num, config_str] = acc
             pbar.update(1)
 
 print(results)
-results.to_csv(f"{output_dir}/dataset_selection_results2.csv")
+results.to_csv(f"{output_dir}/dataset_selection_results.csv")
 
-beepy.beep("ready")
+clf_selection = pd.DataFrame.from_dict([dict(best_clf_counter)])
+clf_selection.to_csv(f"{output_dir}/classifier_selection_results.csv")
+
+beepy.beep("success")

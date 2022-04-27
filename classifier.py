@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
@@ -19,7 +20,8 @@ import xgboost as xgb
 from xgboost import XGBClassifier
 from tqdm import tqdm
 import beepy
-from utils import FakeTrial
+from utils import FakeTrial, make_confusion_matrix
+import seaborn as sns
 
 # Create dataset
 class_names = ["pushup_up", "pushup_down", "situp_up", "situp_down", "squat_up", "squat_down"]
@@ -148,16 +150,16 @@ def compute_acc(config):
     y_test = y_test_angles
 
     clf_names = [
-        # "Nearest Neighbors",
-        # "Linear SVM",
-        # "RBF SVM",
+        "Nearest Neighbors",
+        "Linear SVM",
+        "RBF SVM",
         # "Gaussian Process",
-        # "Decision Tree",
-        # "Random Forest",
-        # "Neural Net",
-        # "AdaBoost",
-        # "Naive Bayes",
-        # "QDA",
+        "Decision Tree",
+        "Random Forest",
+        "Neural Net",
+        "AdaBoost",
+        "Naive Bayes",
+        "QDA",
         "XGBoost"
     ]
 
@@ -197,16 +199,16 @@ def compute_acc(config):
     dt_params = {'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969, 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516, 'max_features': 'sqrt', 'class_weight': None}
 
     classifiers = [
-        # KNeighborsClassifier(3),
-        # SVC(kernel="linear", C=0.025),
-        # SVC(gamma='scale', C=1, class_weight='balanced'),
+        KNeighborsClassifier(3),
+        SVC(kernel="linear", C=0.025),
+        SVC(gamma='scale', C=1, class_weight='balanced'),
         # GaussianProcessClassifier(1.0 * RBF(1.0)),
-        # DecisionTreeClassifier(**dt_params),
-        # RandomForestClassifier(max_depth=12, n_estimators=400, max_features=12),
-        # MLPClassifier(alpha=1e-2, hidden_layer_sizes=(150,), max_iter=4000),
-        # AdaBoostClassifier(),
-        # GaussianNB(),
-        # QuadraticDiscriminantAnalysis(),
+        DecisionTreeClassifier(**dt_params),
+        RandomForestClassifier(max_depth=12, n_estimators=400, max_features=12),
+        MLPClassifier(alpha=1e-2, hidden_layer_sizes=(150,), max_iter=4000),
+        AdaBoostClassifier(),
+        GaussianNB(),
+        QuadraticDiscriminantAnalysis(),
         XGBClassifier(**xgb_params)
     ]
 
@@ -216,7 +218,11 @@ def compute_acc(config):
         acc = clf.score(X_test.to_numpy(), y_test.to_numpy())
         scores.append(acc)
         print(f"{name}: Accuracy = {acc * 100:.5}%")
-        print(sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy())))
+        conf_mat = sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy()))
+        make_confusion_matrix(conf_mat, categories=class_names, cmap='viridis', figsize=(9,9), title=f"Confusion Matrix for {name} classifier")
+        Path(f"{output_dir}/conf_mats").mkdir(parents=True, exist_ok=True)
+        plt.savefig(f"{output_dir}/conf_mats/{name}_conf_mat.png")
+
 
     scores_df = pd.DataFrame(data=[scores], columns=clf_names)
     scores_df.to_csv(f"{output_dir}/clf_scores.csv")
