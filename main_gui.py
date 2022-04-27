@@ -2,7 +2,6 @@ import json
 import sys
 import tkinter as tk
 from enum import Enum
-#{"name": "pushup", "count": 10}, {"name": "squat", "count": 10},
 import beepy
 from PIL import ImageTk, Image
 import cv2
@@ -11,6 +10,7 @@ import numpy as np
 import pandas as pd
 from joblib import load
 import threading
+from time import time
 
 # Create GUI
 root = tk.Tk()
@@ -57,6 +57,7 @@ LANDMARK_MODEL = {
 
 current_exercise_index = -1
 current_exercise_count = 0
+current_prediction = ""
 crossover_threshold = 0.4
 last_state = None
 
@@ -153,6 +154,7 @@ def classify_pose(model, results):
 
 # function for video streaming
 def video_stream():
+
     # Read image from camera
     success, image = cap.read()  # Read image from camera
     if not success:
@@ -165,15 +167,14 @@ def video_stream():
     pose_results = extract_pose(image)
 
     # Classify pose
-    # def proc_pose():
+    # def proc_pose(model, pose_results):
     #     position_probs = classify_pose(model, pose_results)
     #     process_classification(position_probs)
-    # thread = threading.Thread(target=proc_pose)
+    # thread = threading.Thread(target=proc_pose, args=(model, pose_results))
     # thread.start()
 
     position_probs = classify_pose(model, pose_results)
     process_classification(position_probs)
-
 
     # Draw on image
     image = draw_pose(image, pose_results)
@@ -184,12 +185,17 @@ def video_stream():
     imgtk = ImageTk.PhotoImage(image=image)
     video_box.imgtk = imgtk
     video_box.configure(image=imgtk)
-    video_box.after(10, video_stream)
+
+    updateInstructions()
+    check_load_next_exercise()
+
+    video_box.after(15, video_stream)
 
 
 def process_classification(position_probs):
     global current_exercise_index
     global current_exercise_count
+    global current_prediction
     global last_state
 
     if position_probs is None:
@@ -213,24 +219,27 @@ def process_classification(position_probs):
     if current_state == exerciseState.UP and last_state == exerciseState.DOWN:
         current_exercise_count += 1
         # print(f"{exercise_name} : {current_exercise_count} / {exercises[current_exercise_index]['count']}")
-        updateInstructions()
         beepSound("coin")
 
-    pred_label.set(CLASSES[np.array(position_probs).argmax()])
+    current_prediction = (CLASSES[np.array(position_probs).argmax()])
     last_state = current_state
-
-    if current_exercise_count >= exercises[current_exercise_index]['count']:
-        load_next_exercise()
 
 
 def updateInstructions():
     if current_exercise_index < len(exercises):
         exercise_text.set(f"{exercises[current_exercise_index]['name']}s")
         exercise_count.set(f"{current_exercise_count}/{exercises[current_exercise_index]['count']}")
+    pred_label.set(f"Predicted Label: {current_prediction}")
 
 
 def extract_pose(image):
-    with mp_pose.Pose(min_detection_confidence=0.50, min_tracking_confidence=0.50) as pose:
+    with mp_pose.Pose(static_image_mode=False,
+               model_complexity=0,
+               smooth_landmarks=True,
+               enable_segmentation=False,
+               smooth_segmentation=True,
+               min_detection_confidence=0.3,
+               min_tracking_confidence=0.3) as pose:
         # Extract Pose
         results = pose.process(image)
         return results
@@ -247,22 +256,23 @@ def draw_pose(image, pose_results):
     return image
 
 
-def load_next_exercise():
+def check_load_next_exercise():
     global current_exercise_count
     global current_exercise_index
     global last_state
 
-    current_exercise_index += 1
-    current_exercise_count = 0
-    last_state = None
+    if current_exercise_count >= exercises[current_exercise_index]['count']:
+        current_exercise_index += 1
+        current_exercise_count = 0
+        last_state = None
 
-    updateInstructions()
-    beepSound("ready")
+        updateInstructions()
+        beepSound("ready")
 
-    if current_exercise_index >= len(exercises):
-        beepSound("success")
-        print("Workout Complete!")
-        sys.exit(0)
+        if current_exercise_index >= len(exercises):
+            beepSound("success")
+            print("Workout Complete!")
+            sys.exit(0)
 
 
 def beepSound(name):
@@ -275,7 +285,7 @@ if __name__ == '__main__':
     model = load('outputs/model.pkl')
 
     # Capture from camera
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
@@ -285,7 +295,9 @@ if __name__ == '__main__':
     with open('config.json', 'r') as f:
         exercises = json.load(f)
 
-    load_next_exercise()
+    check_load_next_exercise()
+
+    print("Starting...")
 
     # Run GUI
     video_stream()

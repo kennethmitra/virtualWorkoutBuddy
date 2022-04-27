@@ -21,6 +21,8 @@ from tqdm import tqdm
 import beepy
 
 # Create dataset
+from utils import FakeTrial
+
 class_names = ["pushup_up", "pushup_down", "situp_up", "situp_down", "squat_up", "squat_down"]
 
 # Create dataset
