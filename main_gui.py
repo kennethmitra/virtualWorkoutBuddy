@@ -14,6 +14,7 @@ from time import time
 
 # Create GUI
 root = tk.Tk()
+root.title("Virtual Workout Buddy")
 # Create a frame
 app = tk.Frame(root, bg="white")
 app.grid()
@@ -55,10 +56,10 @@ LANDMARK_MODEL = {
     'right_heel': 30, 'left_foot_index': 31, 'right_foot_index': 32
 }
 
-current_exercise_index = -1
+current_exercise_index = 0
 current_exercise_count = 0
 current_prediction = ""
-crossover_threshold = 0.4
+crossover_threshold = (0.5, 0.6, 0.7)
 last_state = None
 
 
@@ -207,11 +208,13 @@ def process_classification(position_probs):
 
     p_up = position_probs[ex_up_idx]
     p_down = position_probs[ex_down_idx]
+
+    p_up, p_down = (p_up / (p_up + p_down), p_down / (p_up + p_down))
     current_state = last_state
 
-    if p_up > crossover_threshold and p_up > p_down:
+    if p_up > crossover_threshold[current_exercise_index] and p_up > p_down:
         current_state = exerciseState.UP
-    elif p_down > crossover_threshold and p_down > p_up:
+    elif p_down > crossover_threshold[current_exercise_index] and p_down > p_up:
         current_state = exerciseState.DOWN
 
     # print("current_state", current_state, "last_state", last_state, "p_up", p_up, 'p_down', p_down, "ex_up_idx", ex_up_idx, "ex_down_idx", ex_down_idx)
@@ -219,7 +222,10 @@ def process_classification(position_probs):
     if current_state == exerciseState.UP and last_state == exerciseState.DOWN:
         current_exercise_count += 1
         # print(f"{exercise_name} : {current_exercise_count} / {exercises[current_exercise_index]['count']}")
+        app['bg'] = 'green'
         beepSound("coin")
+    else:
+        app['bg'] = 'white'
 
     current_prediction = (CLASSES[np.array(position_probs).argmax()])
     last_state = current_state
@@ -272,6 +278,7 @@ def check_load_next_exercise():
         if current_exercise_index >= len(exercises):
             beepSound("success")
             print("Workout Complete!")
+            exercise_text.set("Workout Complete!")
             sys.exit(0)
 
 
@@ -285,7 +292,7 @@ if __name__ == '__main__':
     model = load('outputs/model.pkl')
 
     # Capture from camera
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
