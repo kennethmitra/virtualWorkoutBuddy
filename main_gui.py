@@ -12,6 +12,10 @@ from joblib import load
 import threading
 from time import time
 
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_pose = mp.solutions.pose
+
 # Create GUI
 root = tk.Tk()
 root.title("Virtual Workout Buddy")
@@ -237,15 +241,7 @@ def updateInstructions():
         exercise_count.set(f"{current_exercise_count}/{exercises[current_exercise_index]['count']}")
     pred_label.set(f"Predicted Label: {current_prediction}")
 
-
 def extract_pose(image):
-    with mp_pose.Pose(static_image_mode=False,
-               model_complexity=0,
-               smooth_landmarks=True,
-               enable_segmentation=False,
-               smooth_segmentation=True,
-               min_detection_confidence=0.3,
-               min_tracking_confidence=0.3) as pose:
         # Extract Pose
         results = pose.process(image)
         return results
@@ -288,15 +284,20 @@ def beepSound(name):
 
 
 if __name__ == '__main__':
+    # Create Pose model
+    pose = mp_pose.Pose(static_image_mode=False,
+                        model_complexity=0,
+                        smooth_landmarks=True,
+                        enable_segmentation=False,
+                        smooth_segmentation=True,
+                        min_detection_confidence=0.3,
+                        min_tracking_confidence=0.3)
+
     # Load model
     model = load('outputs/model.pkl')
 
     # Capture from camera
-    cap = cv2.VideoCapture(1)
-
-    mp_drawing = mp.solutions.drawing_utils
-    mp_drawing_styles = mp.solutions.drawing_styles
-    mp_pose = mp.solutions.pose
+    cap = cv2.VideoCapture(0)
 
     # Read exercise list
     with open('config.json', 'r') as f:
