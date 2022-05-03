@@ -9,6 +9,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 if __name__ == "__main__":
+
     def objective(trial):
         config_list = [
                 {'A': True, 'P': False, 'C': False},
@@ -18,11 +19,15 @@ if __name__ == "__main__":
                {'A': False, 'P': True, 'C': False},
                {'A': False, 'P': True, 'C': True},
         ]
+
+        # Select which dataset to use
         config_idx = trial.suggest_categorical('config_idx', list(range(len(config_list))))
         config = config_list[config_idx]
 
+        # Load raw landmark data
         train, test = read_dataset(class_names)
 
+        # Create selected dataset
         train_angles = df_to_angles_df(train)
         test_angles = df_to_angles_df(test)
 
@@ -50,6 +55,7 @@ if __name__ == "__main__":
         X_test = pd.concat(test_ds, axis=1)
         y_test = y_test_angles
 
+        # Have Optuna suggest hyperparameter combination
         param_distributions = {
             'criterion': trial.suggest_categorical('criterion', ['gini', 'entropy']),
             'splitter': trial.suggest_categorical('splitter', ['random', 'best']),
@@ -60,12 +66,15 @@ if __name__ == "__main__":
             'max_features': trial.suggest_categorical('max_features', ['auto', 'sqrt', 'log2']),
             'class_weight': trial.suggest_categorical('class_weight', ['balanced', None])
         }
+
+        # Try out hyperparameter combination
         clf = DecisionTreeClassifier(**param_distributions)
         clf.fit(X_train, y_train)
 
         train_acc = clf.score(X_train, y_train)
         test_acc = clf.score(X_test, y_test)
 
+        # Return objective value
         return (train_acc + test_acc)/2
 
     # Create dataset
@@ -166,11 +175,11 @@ if __name__ == "__main__":
         angles_df['label'] = data['label']
         return angles_df
 
-
-    beepy.beep("error")
+    # Run Optuna study
     study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=10000, n_jobs=-1)
 
+    # Print and save results to disk
     print("Best trial:")
     trial = study.best_trial
 
@@ -196,4 +205,5 @@ if __name__ == "__main__":
         print(f"Params dict: {trial.params}", file=f)
         print("-----------------------------------------------------------------------------", file=f)
 
+    # Notify when complete
     beepy.beep("ready")

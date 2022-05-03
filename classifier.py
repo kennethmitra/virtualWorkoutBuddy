@@ -120,8 +120,11 @@ def df_to_angles_df(data, compute_ground_angle=False):
     return angles_df
 
 def compute_acc(config):
+
+    # Load raw landmark data
     train, test = read_dataset(class_names)
 
+    # Create selected dataset
     train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
     test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
@@ -149,6 +152,7 @@ def compute_acc(config):
     X_test = pd.concat(test_ds, axis=1)
     y_test = y_test_angles
 
+    # Names of classifiers
     clf_names = [
         "Nearest Neighbors",
         "Linear SVM",
@@ -198,6 +202,7 @@ def compute_acc(config):
     # Decision Tree: Set parameters found by optuna
     dt_params = {'criterion': 'gini', 'splitter': 'best', 'max_depth': 11, 'min_samples_split': 0.0843463691913969, 'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516, 'max_features': 'sqrt', 'class_weight': None}
 
+    # Classifier objects with hyperparameters
     classifiers = [
         KNeighborsClassifier(3),
         SVC(kernel="linear", C=0.025),
@@ -214,20 +219,26 @@ def compute_acc(config):
 
     scores = []
     for name, clf in zip(clf_names, classifiers):
+        # Fit classifier to training data
         clf.fit(X_train.to_numpy(), y_train.to_numpy())
+
+        # Compute validation accuracy
         acc = clf.score(X_test.to_numpy(), y_test.to_numpy())
         scores.append(acc)
         print(f"{name}: Accuracy = {acc * 100:.5}%")
+
+        # Compute confusion matrix
         conf_mat = sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy()))
         make_confusion_matrix(conf_mat, categories=class_names, cmap='viridis', figsize=(9,9), title=f"Confusion Matrix for {name} classifier")
         Path(f"{output_dir}/conf_mats").mkdir(parents=True, exist_ok=True)
         plt.savefig(f"{output_dir}/conf_mats/{name}_conf_mat.png")
 
-
+    # Save scores of all classifiers to disk
     scores_df = pd.DataFrame(data=[scores], columns=clf_names)
     scores_df.to_csv(f"{output_dir}/clf_scores.csv")
     print(scores_df)
 
+    # Save the best performing classifer to disk
     highest_scoring = np.array(scores).argmax()
     print(f"Saving {clf_names[highest_scoring]} to disk...")
     dump(classifiers[highest_scoring], f"{output_dir}/model.pkl")
@@ -240,6 +251,7 @@ def compute_acc(config):
 output_dir = "outputs"
 Path(output_dir).mkdir(exist_ok=True, parents=True)
 
+# Which datasets to use
 config_list = [
         {'A': True, 'P': False, 'C': False},
        {'A': True, 'P': True, 'C': False},
@@ -248,38 +260,11 @@ config_list = [
        {'A': False, 'P': True, 'C': False},
        {'A': False, 'P': True, 'C': True},
 ]
-config_idx = 3
+config_idx = 3  # Selected dataset
 config = config_list[config_idx]
 
-train, test = read_dataset(class_names)
-
-train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
-test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
-
-X_train_angles = train_angles.drop(['label'], axis=1)
-y_train_angles = train_angles['label']
-X_test_angles = test_angles.drop(['label'], axis=1)
-y_test_angles = test_angles['label']
-
-X_train_points = train.drop(['label'], axis=1)
-y_train_points = train['label']
-X_test_points = test.drop(['label'], axis=1)
-y_test_points = test['label']
-
-train_ds = []
-test_ds = []
-if config['A']:
-    train_ds.append(X_train_angles)
-    test_ds.append(X_test_angles)
-if config['P']:
-    train_ds.append(X_train_points)
-    test_ds.append(X_test_points)
-
-X_train = pd.concat(train_ds, axis=1)
-y_train = y_train_angles
-X_test = pd.concat(test_ds, axis=1)
-y_test = y_test_angles
-
+# Train and compute accuracies on all classifiers
 compute_acc(config)
 
+# Notify when done
 beepy.beep("ready")

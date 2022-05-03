@@ -18,7 +18,7 @@ N_FOLDS = 3
 
 
 def objective(trial):
-
+    # Optuna suggests hyperparameter combination (From Optuna tutorial on XGBoost)
     param = {
         "verbosity": 0,
         "objective": "multi:softmax",
@@ -38,6 +38,7 @@ def objective(trial):
         'seed':SEED
     }
 
+    # Optuna suggests hyperparameter combination (From Optuna tutorial on XGBoost)
     if param["booster"] == "gbtree" or param["booster"] == "dart":
         param["max_depth"] = trial.suggest_int("max_depth", 1, 9)
         # minimum child weight, larger the term more conservative the tree.
@@ -53,9 +54,13 @@ def objective(trial):
         param["skip_drop"] = trial.suggest_float("skip_drop", 1e-8, 1.0, log=True)
 
     scores = []
+
+    # Try out hyperparameter combination
     xgb_clf = XGBClassifier(**param)
     xgb_clf.fit(X_train, y_train, eval_set=[(X_test, y_test)])
     scores.append(xgb_clf.score(X_test, y_test))
+
+    # Due to early stopping, we also need to save the number of boost rounds that were actually used
     trial.set_user_attr('n_estimators', xgb_clf.n_estimators)
 
     return np.array(scores).mean()
@@ -237,6 +242,8 @@ if __name__ == "__main__":
         print("  Number of estimators: {}".format(trial.user_attrs["n_estimators"]), file=f)
         print("-----------------------------------------------------------------------------", file=f)
 
+    # Save pickle of optuna study (so we can create visualizations)
     dump(study, 'xgboost_clf_study.pkl')
 
+    # Notify when done
     beepy.beep("ready")

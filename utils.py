@@ -2,18 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 class FakeTrial:
+    """
+    This class serves as a drop in replacement for an Optuna Trial after hyperparameters have already been found.
+    By taking in a dict of hyperparameters found by optuna, this class allows the same code to be used for hyperparameter optimization and regular training
+    """
     def __init__(self, optuna_params):
         super(FakeTrial, self).__init__()
         self.optuna_params = optuna_params
 
-    def suggest_categorical(self, name, *args,**vargs):
+    def suggest_categorical(self, name, *args, **vargs):
         return self.get_param(name)
 
-    def suggest_float(self, name, *args,**vargs):
+    def suggest_float(self, name, *args, **vargs):
         return self.get_param(name)
 
-    def suggest_int(self, name, *args,**vargs):
+    def suggest_int(self, name, *args, **vargs):
         return self.get_param(name)
 
     def get_param(self, name):

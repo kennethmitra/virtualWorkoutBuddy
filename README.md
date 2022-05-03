@@ -3,7 +3,7 @@
 ## Quick Start
 ### For Best Results
 Ensure your webcam can see your entire body as you perform squat, situp, and pushup exercises. For best results, when performing situps, angle yourself so the webcam program can detect your feet.
-Virtual Workout Buddy may produce sporadic results if your entire body is not in the frame. Make sure you are ready to begin the workout when launching the program.
+Virtual Workout Buddy may produce sporadic results if your entire body is not in the frame. Make sure you are ready to begin the workout when launching the program. Note: to change which webcam is used, modify the number in the `cap = cv2.VideoCapture(0)` line.
 ### Launching Virtual Workout Buddy
 To install the required python libraries on your system, run `pip install -r requirements.txt`
 

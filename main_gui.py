@@ -12,11 +12,18 @@ from joblib import load
 import threading
 import time
 
+"""
+This script runs the Virtual Workout Buddy application.
+"""
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
 
-# Create GUI
+###################
+#  Construct GUI  #
+###################
+
 root = tk.Tk()
 root.title("Virtual Workout Buddy")
 # Create a frame
@@ -63,7 +70,7 @@ LANDMARK_MODEL = {
 current_exercise_index = 0
 current_exercise_count = 0
 current_prediction = ""
-crossover_threshold = (0.5, 0.6, 0.7)
+crossover_threshold = {'pushup': 0.5, 'squat': 0.6, 'situp': 0.7}  # Crossover threshold specified per exercise
 last_state = None
 
 
@@ -148,6 +155,12 @@ def preprocess_pose(results):
 
 
 def classify_pose(model, results):
+    """
+    Classify predicted pose into exercise position
+    :param model: model to use for inference
+    :param results: predicted pose
+    :return: probabilities of each class
+    """
     try:
         combined_df = preprocess_pose(results)
         pred_probs = model.predict_proba(combined_df.to_numpy())
@@ -159,7 +172,13 @@ def classify_pose(model, results):
 
 # function for video streaming
 last_time = time.time()
+
+
 def video_stream():
+    """
+    Updates the webcam image in GUI and calls pose inference and exercise position classification.
+    Sets a callback to call itself after a delay
+    """
     global last_time
     # Read image from camera
     success, image = cap.read()  # Read image from camera
@@ -172,10 +191,13 @@ def video_stream():
     # Extract Pose
     pose_results = extract_pose(image)
 
+    # Classify pose into exercise position
     position_probs = classify_pose(model, pose_results)
+
+    # Update GUI based on classification results
     process_classification(position_probs)
 
-    # Draw on image
+    # Draw pose on image
     image = draw_pose(image, pose_results)
 
     # Add image to box
@@ -187,13 +209,20 @@ def video_stream():
 
     updateInstructions()
     check_load_next_exercise()
-    print(1/(time.time() - last_time))
+
+    # Calculate FPS
+    print("Current FPS:", 1 / (time.time() - last_time))
     last_time = time.time()
 
     video_box.after(15, video_stream)
 
 
 def process_classification(position_probs):
+    """
+    Determine if rep counter should be increased
+    :param position_probs:
+    :return:
+    """
     global current_exercise_index
     global current_exercise_count
     global current_prediction
@@ -206,25 +235,29 @@ def process_classification(position_probs):
     ex_up_idx = CLASSES.index(f"{exercise_name}_up")
     ex_down_idx = CLASSES.index(f"{exercise_name}_down")
 
+    # Extract probabilities of the up and down positions for the current exercise
     p_up = position_probs[ex_up_idx]
     p_down = position_probs[ex_down_idx]
 
+    # Normalize p_up, p_down to sum to 1.0
     p_up, p_down = (p_up / (p_up + p_down), p_down / (p_up + p_down))
     current_state = last_state
 
-    if p_up > crossover_threshold[current_exercise_index] and p_up > p_down:
+    # Determine if exercise state should be changed
+    if p_up > crossover_threshold[exercise_name] and p_up > p_down:
         current_state = exerciseState.UP
-    elif p_down > crossover_threshold[current_exercise_index] and p_down > p_up:
+    elif p_down > crossover_threshold[exercise_name] and p_down > p_up:
         current_state = exerciseState.DOWN
 
-    # print("current_state", current_state, "last_state", last_state, "p_up", p_up, 'p_down', p_down, "ex_up_idx", ex_up_idx, "ex_down_idx", ex_down_idx)
-
+    # Determine if rep count should increase
     if current_state == exerciseState.UP and last_state == exerciseState.DOWN:
         current_exercise_count += 1
-        # print(f"{exercise_name} : {current_exercise_count} / {exercises[current_exercise_index]['count']}")
+        # Provide visual feedback
         app['bg'] = 'green'
+        # Provide audio feedback
         beepSound("coin")
     else:
+        # Provide visual feedback
         app['bg'] = 'white'
 
     current_prediction = (CLASSES[np.array(position_probs).argmax()])
@@ -232,15 +265,19 @@ def process_classification(position_probs):
 
 
 def updateInstructions():
+    """
+    Update textboxes on GUI
+    """
     if current_exercise_index < len(exercises):
         exercise_text.set(f"{exercises[current_exercise_index]['name']}s")
         exercise_count.set(f"{current_exercise_count}/{exercises[current_exercise_index]['count']}")
     pred_label.set(f"Predicted Label: {current_prediction}")
 
+
 def extract_pose(image):
-        # Extract Pose
-        results = pose.process(image)
-        return results
+    # Extract Pose
+    results = pose.process(image)
+    return results
 
 
 def draw_pose(image, pose_results):
@@ -255,6 +292,10 @@ def draw_pose(image, pose_results):
 
 
 def check_load_next_exercise():
+    """
+    Check if the program should move on to the next exercise on the list
+    :return:
+    """
     global current_exercise_count
     global current_exercise_index
     global last_state
@@ -275,6 +316,9 @@ def check_load_next_exercise():
 
 
 def beepSound(name):
+    """
+    Play sound in a new thread so the GUI does not freeze
+    """
     thread = threading.Thread(target=lambda: beepy.beep(name))
     thread.start()
 

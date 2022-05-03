@@ -123,8 +123,11 @@ def df_to_angles_df(data, compute_ground_angle=False):
 
 
 def compute_acc(config):
+
+    # Load raw landmark data
     train, test = read_dataset(class_names)
 
+    # Create selected dataset
     train_angles = df_to_angles_df(train, compute_ground_angle=config['C'])
     test_angles = df_to_angles_df(test, compute_ground_angle=config['C'])
 
@@ -152,6 +155,7 @@ def compute_acc(config):
     X_test = pd.concat(test_ds, axis=1)
     y_test = y_test_angles
 
+    # Names of classifiers
     clf_names = [
         "Nearest Neighbors",
         "Linear SVM",
@@ -208,6 +212,7 @@ def compute_acc(config):
                  'min_samples_leaf': 0.017900502267895104, 'min_weight_fraction_leaf': 0.010145940025576516,
                  'max_features': 'sqrt', 'class_weight': None}
 
+    # Classifier objects with hyperparameters
     classifiers = [
         KNeighborsClassifier(3),
         SVC(kernel="linear", C=0.025),
@@ -224,17 +229,14 @@ def compute_acc(config):
 
     scores = []
     for name, clf in zip(clf_names, classifiers):
+        # Fit classifier to training data
         clf.fit(X_train.to_numpy(), y_train.to_numpy())
         acc = clf.score(X_test.to_numpy(), y_test.to_numpy())
         scores.append(acc)
         print(f"{name}: Accuracy = {acc * 100:.5}%")
-        print(sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy())))
 
-    scores_df = pd.DataFrame(data=[scores], columns=clf_names)
-    # scores_df.to_csv(f"{output_dir}/direct_clf_scores.csv")
-    # print(scores_df)
-    #
-    # dump(classifiers[clf_names.index("Nearest Neighbors")], f"{output_dir}/model.pkl")
+        # Compute confusion matrix
+        print(sklearn.metrics.confusion_matrix(y_test.to_numpy(), clf.predict(X_test.to_numpy())))
 
     print(f"Max Score: {np.array(scores).max()}")
     print("Best Classifier", clf_names[np.array(scores).argmax()])
@@ -256,25 +258,26 @@ configs = [{'A': True, 'P': False, 'C': False},
 
 name_str = lambda x: "+".join([k for k, v in x.items() if v])
 configs_str = list(map(name_str, configs))
+
+# DataFrame to save results
 results = pd.DataFrame(columns=configs_str)
 
-best_clf_counter = Counter()
-
 with tqdm(total=len(configs) * n_trials) as pbar:
+    # For each dataset combination
     for config_str, config in tqdm(zip(configs_str, configs)):
         print(f"Running config: {config_str}")
+
+        # Run n_trial times
         for trial_num in tqdm(range(n_trials)):
             print(f"Trial no: {trial_num}")
-            acc, best_clf = compute_acc(config)
-            best_clf_counter[best_clf] += 1
+            acc, best_clf = compute_acc(config)  # Calculate accuracy of best performing model
             print(f"Accuracy: {acc}")
             results.loc[trial_num, config_str] = acc
             pbar.update(1)
 
+# Save results to disk
 print(results)
 results.to_csv(f"{output_dir}/dataset_selection_results.csv")
 
-clf_selection = pd.DataFrame.from_dict([dict(best_clf_counter)])
-clf_selection.to_csv(f"{output_dir}/classifier_selection_results.csv")
-
+# Notify when complete
 beepy.beep("success")
