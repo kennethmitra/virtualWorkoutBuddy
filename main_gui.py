@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from joblib import load
 import threading
-from time import time
+import time
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -158,8 +158,9 @@ def classify_pose(model, results):
 
 
 # function for video streaming
+last_time = time.time()
 def video_stream():
-
+    global last_time
     # Read image from camera
     success, image = cap.read()  # Read image from camera
     if not success:
@@ -170,13 +171,6 @@ def video_stream():
 
     # Extract Pose
     pose_results = extract_pose(image)
-
-    # Classify pose
-    # def proc_pose(model, pose_results):
-    #     position_probs = classify_pose(model, pose_results)
-    #     process_classification(position_probs)
-    # thread = threading.Thread(target=proc_pose, args=(model, pose_results))
-    # thread.start()
 
     position_probs = classify_pose(model, pose_results)
     process_classification(position_probs)
@@ -193,6 +187,8 @@ def video_stream():
 
     updateInstructions()
     check_load_next_exercise()
+    print(1/(time.time() - last_time))
+    last_time = time.time()
 
     video_box.after(15, video_stream)
 
